@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedScribe - Clinical Audio Summarizer & EHR Auto-Parser</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">🩺</div>
+                <div class="logo-text">
+                    <h1>MedScribe</h1>
+                    <p>Ambient Clinical Intelligence Platform</p>
+                </div>
+            </div>
+            <div class="header-status">
+                <span class="status-indicator online"></span>
+                <span id="status-text">System Active</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace Grid -->
+        <main class="workspace-grid">
+            <!-- Left Panel: Recording Control Desk -->
+            <section class="control-panel card">
+                <div class="panel-header">
+                    <h2>Capture Audio</h2>
+                    <span class="badge">Session Deck</span>
+                </div>
+                
+                <div class="recording-container">
+                    <div id="recording-indicator" class="recording-indicator hidden">
+                        <span class="pulse-dot"></span>
+                        <span class="indicator-text">RECORDING ACTIVE</span>
+                    </div>
+                    
+                    <div class="timer" id="recording-timer">00:00</div>
+                    
+                    <!-- Waveform Visualizer -->
+                    <div class="canvas-container">
+                        <canvas id="waveform-canvas"></canvas>
+                    </div>
+
+                    <div class="control-buttons">
+                        <button id="btn-record" class="btn btn-primary btn-record">
+                            <span class="icon">🎙️</span> Start Recording
+                        </button>
+                        <button id="btn-stop" class="btn btn-danger hidden" disabled>
+                            <span class="icon">⏹️</span> Stop & Parse
+                        </button>
+                    </div>
+                </div>
+
+                <div class="divider"><span>OR</span></div>
+
+                <!-- Drag & Drop Audio Upload -->
+                <div class="upload-container" id="drop-zone">
+                    <div class="upload-icon">📤</div>
+                    <p class="upload-text">Drag & drop consultation audio files here</p>
+                    <p class="upload-subtext">Supports WAV, MP3, M4A, WebM (Max 25MB)</p>
+                    <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">
+                        Browse Files
+                    </button>
+                    <input type="file" id="file-input" accept="audio/*" class="hidden">
+                </div>
+            </section>
+
+            <!-- Middle Panel: Live Transcript -->
+            <section class="transcript-panel card">
+                <div class="panel-header">
+                    <h2>Consultation Transcript</h2>
+                    <button id="btn-edit-transcript" class="btn-icon" title="Edit Transcript">✏️</button>
+                </div>
+                <div class="transcript-wrapper">
+                    <textarea id="transcript-textarea" class="transcript-textarea hidden" placeholder="Edit transcript here..."></textarea>
+                    <div id="transcript-view" class="transcript-view" data-placeholder="Audio transcript will appear here after recording or uploading..."></div>
+                </div>
+                <div class="processing-overlay hidden" id="processing-spinner">
+                    <div class="spinner"></div>
+                    <p>Processing audio and structuring clinical record...</p>
+                </div>
+            </section>
+
+            <!-- Right Panel: Structured EHR Report -->
+            <section class="ehr-panel card">
+                <div class="panel-header">
+                    <h2>EHR Auto-Parser</h2>
+                    <button id="btn-save" class="btn btn-success" disabled>
+                        <span class="icon">💾</span> Save Record
+                    </button>
+                </div>
+
+                <form id="ehr-form" class="ehr-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="patient-name">Patient Name</label>
+                            <input type="text" id="patient-name" required placeholder="Patient Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="encounter-date">Date</label>
+                            <input type="text" id="encounter-date" required placeholder="Encounter Date">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Symptom Tags</label>
+                        <div class="tags-container" id="symptoms-container">
+                            <!-- Tags injected dynamically -->
+                        </div>
+                        <div class="tag-input-row">
+                            <input type="text" id="input-symptom" placeholder="Add symptom...">
+                            <button type="button" class="btn-add-tag" id="btn-add-symptom">+</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Diagnoses</label>
+                        <div class="tags-container" id="diagnoses-container">
+                            <!-- Tags injected dynamically -->
+                        </div>
+                        <div class="tag-input-row">
+                            <input type="text" id="input-diagnosis" placeholder="Add diagnosis...">
+                            <button type="button" class="btn-add-tag" id="btn-add-diagnosis">+</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Prescriptions</label>
+                        <div class="prescriptions-table-wrapper">
+                            <table class="prescriptions-table" id="prescriptions-table">
+                               <thead>
+                                   <tr>
+                                       <th>Medication</th>
+                                       <th>Dosage</th>
+                                       <th>Frequency</th>
+                                       <th style="width: 40px;"></th>
+                                   </tr>
+                               </thead>
+                               <tbody>
+                                   <!-- Prescriptions injected dynamically -->
+                               </tbody>
+                            </table>
+                        </div>
+                        <div class="prescription-input-row">
+                            <input type="text" id="input-drug" placeholder="Drug">
+                            <input type="text" id="input-dosage" placeholder="Dosage">
+                            <input type="text" id="input-frequency" placeholder="Frequency">
+                            <button type="button" class="btn-add-prescription" id="btn-add-prescription">+</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clinical-notes">Clinical Summary Notes (Markdown)</label>
+                        <div class="notes-tabs">
+                            <button type="button" class="tab-btn active" id="tab-btn-write">Write</button>
+                            <button type="button" class="tab-btn" id="tab-btn-preview">Preview</button>
+                        </div>
+                        <div class="notes-container">
+                            <textarea id="clinical-notes" rows="8" placeholder="Clinical summary notes..."></textarea>
+                            <div id="notes-preview" class="notes-preview hidden"></div>
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </main>
+
+        <!-- Bottom Panel: Historical Records Search & Log -->
+        <footer class="history-section card">
+            <div class="panel-header">
+                <h2>Clinical Encounters History</h2>
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-history" placeholder="Search by patient, symptom, or diagnosis...">
+                </div>
+            </div>
+            <div class="history-list-wrapper">
+                <div class="history-grid" id="history-grid">
+                    <!-- History items injected dynamically -->
+                </div>
+                <div id="history-empty" class="history-empty">
+                    <p>No historical encounters found. Try starting a new session.</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
